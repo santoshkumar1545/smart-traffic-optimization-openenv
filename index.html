@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Traffic Dashboard</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #dbeafe, #f8fafc, #e0f2fe);
+      min-height: 100vh;
+    }
+
+    .lane-card {
+      transition: all 0.25s ease;
+      border-width: 4px;
+    }
+
+    .traffic-low {
+      background: linear-gradient(135deg, #dcfce7, #f0fdf4);
+    }
+
+    .traffic-medium {
+      background: linear-gradient(135deg, #fef9c3, #fefce8);
+    }
+
+    .traffic-high {
+      background: linear-gradient(135deg, #fecaca, #fef2f2);
+    }
+
+    .active-signal {
+      border-color: #22c55e !important;
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2);
+    }
+
+    .emergency-highlight {
+      box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.25);
+    }
+  </style>
+</head>
+
+<body class="text-slate-800">
+
+<div class="max-w-7xl mx-auto p-6">
+
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="text-4xl font-bold mb-2">🚦 Smart Traffic Dashboard</h1>
+    <p class="text-slate-600 text-lg">AI-based adaptive traffic signal control with emergency prioritization.</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow">
+      <p class="text-slate-500">Current Signal</p>
+      <h2 id="currentSignal" class="font-bold text-2xl">Lane 1</h2>
+    </div>
+    <div class="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow">
+      <p class="text-slate-500">Step</p>
+      <h2 id="stepCount" class="text-2xl font-bold">0</h2>
+    </div>
+    <div class="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow">
+      <p class="text-slate-500">Reward</p>
+      <h2 id="rewardBox" class="text-2xl font-bold">0</h2>
+    </div>
+    <div class="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow">
+      <p class="text-slate-500">Total Waiting</p>
+      <h2 id="totalWaitingTop" class="text-2xl font-bold">0</h2>
+    </div>
+  </div>
+
+  <!-- Lanes -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+
+    <div id="lane1" class="lane-card bg-white p-6 rounded-2xl shadow border-slate-200">
+      <h3 class="text-lg font-semibold mb-2">Lane 1 <span id="em1" class="hidden text-red-600">🚑</span></h3>
+      <h1 id="lane1Cars" class="text-5xl font-bold mb-2">0</h1>
+      <p id="lane1Status" class="text-slate-600">Low</p>
+    </div>
+
+    <div id="lane2" class="lane-card bg-white p-6 rounded-2xl shadow border-slate-200">
+      <h3 class="text-lg font-semibold mb-2">Lane 2 <span id="em2" class="hidden text-red-600">🚑</span></h3>
+      <h1 id="lane2Cars" class="text-5xl font-bold mb-2">0</h1>
+      <p id="lane2Status" class="text-slate-600">Low</p>
+    </div>
+
+    <div id="lane3" class="lane-card bg-white p-6 rounded-2xl shadow border-slate-200">
+      <h3 class="text-lg font-semibold mb-2">Lane 3 <span id="em3" class="hidden text-red-600">🚑</span></h3>
+      <h1 id="lane3Cars" class="text-5xl font-bold mb-2">0</h1>
+      <p id="lane3Status" class="text-slate-600">Low</p>
+    </div>
+
+    <div class="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow">
+      <p class="text-slate-500 mb-2">Emergency Lane</p>
+      <h2 id="emergencyLane" class="text-2xl font-bold mb-4">None</h2>
+
+      <p class="text-slate-500 mb-2">AI Decision</p>
+      <h2 id="aiDecision" class="text-xl font-bold text-purple-700">Waiting...</h2>
+    </div>
+
+  </div>
+
+  <!-- Controls -->
+  <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow p-6 mb-6">
+    <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-4">
+      <div>
+        <h2 class="text-2xl font-bold">Controls</h2>
+        <p class="text-slate-600">Run manual or automatic traffic control simulation.</p>
+      </div>
+
+      <div class="flex gap-3">
+        <select id="taskSelect" class="px-4 py-2 rounded-xl border border-slate-300">
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+
+        <button onclick="resetEnv()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl">
+          Reset
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <button onclick="takeStep(1)" class="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl">Lane 1</button>
+      <button onclick="takeStep(2)" class="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl">Lane 2</button>
+      <button onclick="takeStep(3)" class="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl">Lane 3</button>
+      <button onclick="startAuto()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-xl">▶ Start Auto</button>
+      <button onclick="stopAuto()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl">■ Stop Auto</button>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow p-6">
+    <h2 class="text-2xl font-bold mb-4">Reward History</h2>
+    <canvas id="rewardChart"></canvas>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

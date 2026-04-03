@@ -1,0 +1,46 @@
+name: traffic-signal-control
+version: "1.0.0"
+description: OpenEnv environment for smart traffic signal optimization
+entrypoint: app.py
+
+endpoints:
+  reset: /reset
+  step: /step
+  state: /state
+
+observation_space:
+  type: object
+  properties:
+    lane_1_cars:
+      type: integer
+    lane_2_cars:
+      type: integer
+    lane_3_cars:
+      type: integer
+    current_signal:
+      type: integer
+    step_count:
+      type: integer
+    max_steps:
+      type: integer
+    done:
+      type: boolean
+
+action_space:
+  type: integer
+  description: |
+    1 = lane 1 green
+    2 = lane 2 green
+    3 = lane 3 green
+
+tasks:
+  - id: easy
+    description: Low traffic environment
+  - id: medium
+    description: Moderate traffic environment
+  - id: hard
+    description: High traffic congestion environment
+
+reward_range:
+  min: 0.0
+  max: 1.0
