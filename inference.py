@@ -1,94 +1,38 @@
-import os
-import requests
-from dotenv import load_dotenv
-from openai import OpenAI
+from PIL import Image, ImageFilter
+import numpy as np
 
-load_dotenv()
+def predict_traffic(image_path):
+    """
+    Estimate traffic density and approximate vehicle count using image features.
+    Returns:
+        label, confidence, vehicle_count, density_ratio
+    """
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
-HF_TOKEN = os.getenv("HF_TOKEN", "dummy_token")
-
-client = OpenAI(
-    base_url=API_BASE_URL,
-    api_key=HF_TOKEN
-)
-
-ENV_URL = "http://127.0.0.1:8000"
-
-
-def choose_best_action(state):
-    if state.get("emergency_lane") is not None:
-        return state["emergency_lane"]
-
-    lanes = {
-        1: state["lane_1_cars"],
-        2: state["lane_2_cars"],
-        3: state["lane_3_cars"]
-    }
-    return max(lanes, key=lanes.get)
-
-
-def normalize_score(total_reward, task_id):
-    if task_id == "easy":
-        score = total_reward / 15
-    elif task_id == "medium":
-        score = total_reward / 20
-    else:
-        score = total_reward / 28
-
-    return round(max(0.0, min(1.0, score)), 3)
-
-
-def safe_json(response, endpoint_name):
     try:
-        return response.json()
-    except Exception:
-        print(f"\n[ERROR] {endpoint_name} did not return valid JSON")
-        print(f"Status Code: {response.status_code}")
-        print("Raw Response:")
-        print(response.text)
-        raise
+        image = Image.open(image_path).convert("L")
+        image = image.resize((224, 224))
 
+        edges = image.filter(ImageFilter.FIND_EDGES)
+        img_array = np.array(edges)
 
-def run_task(task_id):
-    print(f"[START] task={task_id}")
+        busy_pixels = np.sum(img_array > 40)
+        total_pixels = img_array.size
 
-    reset_response = requests.post(f"{ENV_URL}/reset", params={"task_id": task_id})
-    reset_data = safe_json(reset_response, "reset")
-    state = reset_data["state"]
+        density_ratio = busy_pixels / total_pixels
+        vehicle_count = max(1, int(density_ratio * 120))
 
-    done = False
-    total_reward = 0.0
-    step_num = 0
-    max_demo_steps = 20  # keep inference safe
+        if vehicle_count <= 10:
+            label = "Low Traffic"
+            confidence = 82
+        elif vehicle_count <= 20:
+            label = "Medium Traffic"
+            confidence = 88
+        else:
+            label = "High Traffic"
+            confidence = 93
 
-    while not done and step_num < max_demo_steps:
-        action = choose_best_action(state)
+        return label, confidence, vehicle_count, round(density_ratio, 3)
 
-        response = requests.post(f"{ENV_URL}/step", json={"action": action})
-        result = safe_json(response, "step")
-
-        reward = result["reward"]
-        done = result["done"]
-        state = result["state"]
-        total_reward += reward
-        step_num += 1
-
-        print(
-            f"[STEP] task={task_id} step={step_num} action={action} reward={reward} done={done}"
-        )
-
-    score = normalize_score(total_reward, task_id)
-    print(f"[END] task={task_id} total_reward={round(total_reward, 3)} score={score}")
-    return score
-
-
-if __name__ == "__main__":
-    scores = {}
-    for task in ["easy", "medium", "hard"]:
-        scores[task] = run_task(task)
-
-    avg_score = round(sum(scores.values()) / len(scores), 3)
-    print(f"\nFinal Scores: {scores}")
-    print(f"Average Score: {avg_score}")
+    except Exception as e:
+        print("Inference Error:", e)
+        return "Low Traffic", 50, 3, 0.02

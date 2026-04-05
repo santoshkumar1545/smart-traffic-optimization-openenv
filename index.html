@@ -2,145 +2,301 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Smart Traffic Dashboard</title>
-
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Traffic Optimization Dashboard</title>
   <style>
+    * { box-sizing: border-box; }
+
     body {
-      background: linear-gradient(135deg, #dbeafe, #f8fafc, #e0f2fe);
-      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: white;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1, h2, h3 {
+      text-align: center;
+    }
+
+    h1 {
+      color: #38bdf8;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: auto;
+    }
+
+    .upload-box, .dashboard-card {
+      background: rgba(30, 41, 59, 0.95);
+      padding: 20px;
+      border-radius: 18px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      margin-bottom: 25px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .road-input {
+      padding: 15px;
+      background: #334155;
+      border-radius: 12px;
+    }
+
+    button {
+      background: linear-gradient(90deg, #38bdf8, #0ea5e9);
+      color: black;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 12px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+
+    button:hover {
+      transform: scale(1.03);
+    }
+
+    #dashboard {
+      display: none;
+      margin-top: 30px;
+    }
+
+    #timer {
+      text-align: center;
+      color: #22c55e;
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    .junction-container {
+      position: relative;
+      width: 540px;
+      height: 540px;
+      margin: 30px auto;
+      background: #0b1220;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 3px solid #38bdf8;
+      box-shadow: 0 0 30px rgba(56, 189, 248, 0.25);
+    }
+
+    .road {
+      position: absolute;
+      background: #475569;
+      transition: 0.5s;
+      overflow: hidden;
+    }
+
+    .road1 { top: 0; left: 200px; width: 140px; height: 200px; }
+    .road2 { top: 200px; right: 0; width: 200px; height: 140px; }
+    .road3 { bottom: 0; left: 200px; width: 140px; height: 200px; }
+    .road4 { top: 200px; left: 0; width: 200px; height: 140px; }
+
+    .center-box {
+      position: absolute;
+      top: 200px;
+      left: 200px;
+      width: 140px;
+      height: 140px;
+      background: #1e293b;
+      border: 3px solid white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 16px;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 5;
+    }
+
+    .vehicle {
+      position: absolute;
+      width: 20px;
+      height: 12px;
+      background: white;
+      border-radius: 4px;
+      opacity: 0.9;
+      box-shadow: 0 0 8px rgba(255,255,255,0.6);
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+
+    .lane-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-top: 30px;
     }
 
     .lane-card {
-      transition: all 0.25s ease;
-      border-width: 4px;
+      background: rgba(30, 41, 59, 0.95);
+      padding: 18px;
+      border-radius: 18px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      position: relative;
+      overflow: hidden;
     }
 
-    .traffic-low {
-      background: linear-gradient(135deg, #dcfce7, #f0fdf4);
+    .lane-preview {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      border: 2px solid #334155;
     }
 
-    .traffic-medium {
-      background: linear-gradient(135deg, #fef9c3, #fefce8);
+    .mini-road {
+      position: relative;
+      height: 120px;
+      background: #334155;
+      border-radius: 14px;
+      overflow: hidden;
+      margin-top: 15px;
+      border: 2px solid #475569;
     }
 
-    .traffic-high {
-      background: linear-gradient(135deg, #fecaca, #fef2f2);
+    .mini-vehicle {
+      position: absolute;
+      width: 18px;
+      height: 10px;
+      background: #fff;
+      border-radius: 4px;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
     }
 
-    .active-signal {
-      border-color: #22c55e !important;
-      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2);
+    .signal-badge {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-weight: bold;
+      margin-top: 10px;
     }
 
-    .emergency-highlight {
-      box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.25);
+    .green {
+      background: #16a34a;
+      color: white;
+    }
+
+    .red {
+      background: #dc2626;
+      color: white;
+    }
+
+    .priority {
+      border: 2px solid #22c55e !important;
+      box-shadow: 0 0 20px #22c55e !important;
+    }
+
+    .bar-container {
+      background: #334155;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 10px;
+      height: 18px;
+    }
+
+    .bar {
+      height: 100%;
+      transition: width 1.2s ease-in-out;
+    }
+
+    @keyframes moveDown {
+      from { transform: translateY(-20px); }
+      to { transform: translateY(180px); }
+    }
+
+    @keyframes moveLeft {
+      from { transform: translateX(20px); }
+      to { transform: translateX(-180px); }
+    }
+
+    @keyframes moveUp {
+      from { transform: translateY(20px); }
+      to { transform: translateY(-180px); }
+    }
+
+    @keyframes moveRight {
+      from { transform: translateX(-20px); }
+      to { transform: translateX(180px); }
+    }
+
+    @keyframes moveMini {
+      from { transform: translateX(-30px); }
+      to { transform: translateX(350px); }
     }
   </style>
 </head>
+<body>
+  <div class="container">
+    <h1>🚦 AI Traffic Optimization Dashboard</h1>
+    <p style="text-align:center;">Upload 4 road images and simulate a smart 4-way traffic junction.</p>
 
-<body class="text-slate-800">
-
-<div class="max-w-7xl mx-auto p-6">
-
-  <!-- Header -->
-  <div class="mb-8">
-    <h1 class="text-4xl font-bold mb-2">🚦 Smart Traffic Dashboard</h1>
-    <p class="text-slate-600 text-lg">AI-based adaptive traffic signal control with emergency prioritization.</p>
-  </div>
-
-  <!-- Stats -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-    <div class="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow">
-      <p class="text-slate-500">Current Signal</p>
-      <h2 id="currentSignal" class="font-bold text-2xl">Lane 1</h2>
-    </div>
-    <div class="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow">
-      <p class="text-slate-500">Step</p>
-      <h2 id="stepCount" class="text-2xl font-bold">0</h2>
-    </div>
-    <div class="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow">
-      <p class="text-slate-500">Reward</p>
-      <h2 id="rewardBox" class="text-2xl font-bold">0</h2>
-    </div>
-    <div class="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow">
-      <p class="text-slate-500">Total Waiting</p>
-      <h2 id="totalWaitingTop" class="text-2xl font-bold">0</h2>
-    </div>
-  </div>
-
-  <!-- Lanes -->
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-
-    <div id="lane1" class="lane-card bg-white p-6 rounded-2xl shadow border-slate-200">
-      <h3 class="text-lg font-semibold mb-2">Lane 1 <span id="em1" class="hidden text-red-600">🚑</span></h3>
-      <h1 id="lane1Cars" class="text-5xl font-bold mb-2">0</h1>
-      <p id="lane1Status" class="text-slate-600">Low</p>
-    </div>
-
-    <div id="lane2" class="lane-card bg-white p-6 rounded-2xl shadow border-slate-200">
-      <h3 class="text-lg font-semibold mb-2">Lane 2 <span id="em2" class="hidden text-red-600">🚑</span></h3>
-      <h1 id="lane2Cars" class="text-5xl font-bold mb-2">0</h1>
-      <p id="lane2Status" class="text-slate-600">Low</p>
-    </div>
-
-    <div id="lane3" class="lane-card bg-white p-6 rounded-2xl shadow border-slate-200">
-      <h3 class="text-lg font-semibold mb-2">Lane 3 <span id="em3" class="hidden text-red-600">🚑</span></h3>
-      <h1 id="lane3Cars" class="text-5xl font-bold mb-2">0</h1>
-      <p id="lane3Status" class="text-slate-600">Low</p>
-    </div>
-
-    <div class="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow">
-      <p class="text-slate-500 mb-2">Emergency Lane</p>
-      <h2 id="emergencyLane" class="text-2xl font-bold mb-4">None</h2>
-
-      <p class="text-slate-500 mb-2">AI Decision</p>
-      <h2 id="aiDecision" class="text-xl font-bold text-purple-700">Waiting...</h2>
-    </div>
-
-  </div>
-
-  <!-- Controls -->
-  <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow p-6 mb-6">
-    <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-4">
-      <div>
-        <h2 class="text-2xl font-bold">Controls</h2>
-        <p class="text-slate-600">Run manual or automatic traffic control simulation.</p>
+    <div class="upload-box">
+      <div class="grid">
+        <div class="road-input">
+          <label>Road 1 Image</label><br>
+          <input type="file" id="road1" accept="image/*" />
+        </div>
+        <div class="road-input">
+          <label>Road 2 Image</label><br>
+          <input type="file" id="road2" accept="image/*" />
+        </div>
+        <div class="road-input">
+          <label>Road 3 Image</label><br>
+          <input type="file" id="road3" accept="image/*" />
+        </div>
+        <div class="road-input">
+          <label>Road 4 Image</label><br>
+          <input type="file" id="road4" accept="image/*" />
+        </div>
       </div>
 
-      <div class="flex gap-3">
-        <select id="taskSelect" class="px-4 py-2 rounded-xl border border-slate-300">
-          <option value="easy">Easy</option>
-          <option value="medium">Medium</option>
-          <option value="hard">Hard</option>
+      <div style="margin-top:20px;">
+        <label><strong>Emergency Vehicle Override:</strong></label>
+        <select id="emergencyRoad" style="padding:10px; border-radius:10px; margin-left:10px;">
+          <option value="">None</option>
+          <option value="Road1">Road 1</option>
+          <option value="Road2">Road 2</option>
+          <option value="Road3">Road 3</option>
+          <option value="Road4">Road 4</option>
         </select>
+      </div>
 
-        <button onclick="resetEnv()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl">
-          Reset
-        </button>
+      <div style="text-align:center;">
+        <button onclick="analyzeTraffic()">Analyze Traffic</button>
       </div>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-      <button onclick="takeStep(1)" class="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl">Lane 1</button>
-      <button onclick="takeStep(2)" class="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl">Lane 2</button>
-      <button onclick="takeStep(3)" class="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl">Lane 3</button>
-      <button onclick="startAuto()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-xl">▶ Start Auto</button>
-      <button onclick="stopAuto()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl">■ Stop Auto</button>
+    <div id="dashboard">
+      <div id="timer">Waiting...</div>
+
+      <div class="dashboard-card">
+        <h2>🌐 Main Junction Visualization</h2>
+        <div class="junction-container">
+          <div class="road road1" id="junction-road1"></div>
+          <div class="road road2" id="junction-road2"></div>
+          <div class="road road3" id="junction-road3"></div>
+          <div class="road road4" id="junction-road4"></div>
+          <div class="center-box">🚦 Junction</div>
+        </div>
+      </div>
+
+      <h2>🛣 Individual Lane Dashboards</h2>
+      <div class="lane-grid" id="laneGrid"></div>
     </div>
   </div>
 
-  <!-- Chart -->
-  <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow p-6">
-    <h2 class="text-2xl font-bold mb-4">Reward History</h2>
-    <canvas id="rewardChart"></canvas>
-  </div>
-
-</div>
-
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>

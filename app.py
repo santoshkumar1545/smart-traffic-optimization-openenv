@@ -1,50 +1,100 @@
-from fastapi import FastAPI, Query
-from fastapi.middleware.cors import CORSMiddleware
-from env.environment import TrafficEnv
-from env.models import StepAction, StepResponse, ResetResponse, TrafficState
+from flask import Flask, request, jsonify, send_from_directory
+import os
+from inference import predict_traffic
 
-app = FastAPI(title="OpenEnv Traffic Signal Control")
+app = Flask(__name__, static_folder=".", static_url_path="")
 
-# Allow frontend dashboard to access backend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-env = TrafficEnv()
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
-@app.get("/")
+def allocate_signal_times(vehicle_counts, emergency_road=None):
+    """
+    Dynamically allocate signal times based on vehicle counts.
+    Minimum: 20 sec
+    Maximum: 60 sec
+    Emergency road gets highest priority.
+    """
+    min_time = 20
+    max_time = 60
+
+    total_vehicles = sum(vehicle_counts.values())
+
+    if total_vehicles == 0:
+        signal_times = {road: min_time for road in vehicle_counts}
+    else:
+        signal_times = {}
+        for road, count in vehicle_counts.items():
+            proportion = count / total_vehicles
+            signal_time = int(min_time + proportion * (max_time - min_time) * 4)
+            signal_time = max(min_time, min(signal_time, max_time))
+            signal_times[road] = signal_time
+
+    # Emergency override
+    if emergency_road and emergency_road in signal_times:
+        signal_times[emergency_road] = max_time
+
+    return signal_times
+
+
+@app.route("/")
 def home():
-    return {"message": "Traffic Signal OpenEnv is running"}
+    return send_from_directory(".", "index.html")
 
 
-@app.post("/reset", response_model=ResetResponse)
-def reset(task_id: str = Query(default="easy")):
-    state = env.reset(task_id=task_id)
-    return ResetResponse(
-        state=state,
-        task_id=task_id,
-        description=f"Traffic control task initialized for {task_id} difficulty"
-    )
+@app.route("/uploads/<path:filename>")
+def uploaded_file(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
 
-@app.get("/state", response_model=TrafficState)
-def state():
-    if env.get_state() is None:
-        return env.reset("easy")
-    return env.get_state()
+@app.route("/predict", methods=["POST"])
+def predict():
+    roads = ["road1", "road2", "road3", "road4"]
+
+    predictions = {}
+    confidences = {}
+    vehicle_counts = {}
+    density_scores = {}
+    image_urls = {}
+
+    emergency_road = request.form.get("emergencyRoad", "").strip()
+
+    for road in roads:
+        file = request.files.get(road)
+
+        if file:
+            filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+            file.save(filepath)
+
+            traffic_level, confidence, vehicle_count, density_ratio = predict_traffic(filepath)
+
+            road_name = road.replace("road", "Road")
+
+            predictions[road_name] = traffic_level
+            confidences[road_name] = confidence
+            vehicle_counts[road_name] = vehicle_count
+            density_scores[road_name] = density_ratio
+            image_urls[road_name] = f"/uploads/{file.filename}"
+
+    signal_times = allocate_signal_times(vehicle_counts, emergency_road=emergency_road)
+
+    # Priority road logic
+    if emergency_road and emergency_road in vehicle_counts:
+        priority_road = emergency_road
+    else:
+        priority_road = max(vehicle_counts, key=vehicle_counts.get)
+
+    return jsonify({
+        "predictions": predictions,
+        "confidences": confidences,
+        "vehicle_counts": vehicle_counts,
+        "density_scores": density_scores,
+        "signal_times": signal_times,
+        "priority_road": priority_road,
+        "image_urls": image_urls,
+        "emergency_road": emergency_road
+    })
 
 
-@app.post("/step", response_model=StepResponse)
-def step(action_data: StepAction):
-    state, reward, done, info = env.step(action_data.action)
-    return StepResponse(
-        state=state,
-        reward=reward,
-        done=done,
-        info=info
-    )
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=7860, debug=True)

@@ -1,46 +1,15 @@
-name: traffic-signal-control
-version: "1.0.0"
-description: OpenEnv environment for smart traffic signal optimization
-entrypoint: app.py
+name: traffic-junction-ai
+description: AI-powered 4-road junction traffic optimization environment using uploaded traffic images.
+version: 1.0.0
 
-endpoints:
-  reset: /reset
-  step: /step
-  state: /state
-
-observation_space:
-  type: object
-  properties:
-    lane_1_cars:
-      type: integer
-    lane_2_cars:
-      type: integer
-    lane_3_cars:
-      type: integer
-    current_signal:
-      type: integer
-    step_count:
-      type: integer
-    max_steps:
-      type: integer
-    done:
-      type: boolean
-
-action_space:
-  type: integer
-  description: |
-    1 = lane 1 green
-    2 = lane 2 green
-    3 = lane 3 green
+environment:
+  module: env.environment
+  class: TrafficEnvironment
 
 tasks:
   - id: easy
-    description: Low traffic environment
+    description: Analyze traffic density for 4 roads and assign signal timings.
   - id: medium
-    description: Moderate traffic environment
+    description: Optimize green signal allocation based on lane congestion.
   - id: hard
-    description: High traffic congestion environment
-
-reward_range:
-  min: 0.0
-  max: 1.0
+    description: Simulate intelligent priority assignment for a 4-road intersection.
