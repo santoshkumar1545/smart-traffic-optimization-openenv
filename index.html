@@ -1,27 +1,103 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Traffic Prediction</title>
+    <title>Traffic Optimization</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #1e3c72, #2a5298);
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            margin-top: 30px;
+        }
+
+        .container {
+            background: white;
+            color: black;
+            width: 60%;
+            margin: 30px auto;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        input[type="file"], input[type="text"] {
+            padding: 10px;
+            margin: 10px;
+            width: 80%;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background: #2a5298;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #1e3c72;
+        }
+
+        .result-box {
+            margin-top: 20px;
+            text-align: left;
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 10px;
+            color: black;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .file-label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+    </style>
 </head>
+
 <body>
 
-<h2>Upload Traffic Images</h2>
+<h1>🚦 Smart Traffic Optimization</h1>
 
-<form id="uploadForm" enctype="multipart/form-data">
-    
-    Road 1: <input type="file" name="road1"><br><br>
-    Road 2: <input type="file" name="road2"><br><br>
-    Road 3: <input type="file" name="road3"><br><br>
-    Road 4: <input type="file" name="road4"><br><br>
+<div class="container">
 
-    Emergency Road:
-    <input type="text" name="emergencyRoad" placeholder="Road1"><br><br>
+    <form id="uploadForm" enctype="multipart/form-data">
 
-    <button type="submit">Predict</button>
-</form>
+        <label class="file-label">Road 1 Image</label>
+        <input type="file" name="road1">
 
-<h3>Results:</h3>
-<pre id="result"></pre>
+        <label class="file-label">Road 2 Image</label>
+        <input type="file" name="road2">
+
+        <label class="file-label">Road 3 Image</label>
+        <input type="file" name="road3">
+
+        <label class="file-label">Road 4 Image</label>
+        <input type="file" name="road4">
+
+        <label class="file-label">Emergency Road (optional)</label>
+        <input type="text" name="emergencyRoad" placeholder="Example: Road1">
+
+        <br><br>
+        <button type="submit">🚀 Predict Traffic</button>
+    </form>
+
+    <div class="result-box" id="result"></div>
+
+</div>
 
 <script>
 document.getElementById("uploadForm").addEventListener("submit", async function(e) {
