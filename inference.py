@@ -1,38 +1,14 @@
-from PIL import Image, ImageFilter
-import numpy as np
+from PIL import Image
+import random
 
 def predict_traffic(image_path):
-    """
-    Estimate traffic density and approximate vehicle count using image features.
-    Returns:
-        label, confidence, vehicle_count, density_ratio
-    """
+    image = Image.open(image_path).convert("RGB")
 
-    try:
-        image = Image.open(image_path).convert("L")
-        image = image.resize((224, 224))
+    traffic_levels = ["Low", "Medium", "High"]
 
-        edges = image.filter(ImageFilter.FIND_EDGES)
-        img_array = np.array(edges)
-
-        busy_pixels = np.sum(img_array > 40)
-        total_pixels = img_array.size
-
-        density_ratio = busy_pixels / total_pixels
-        vehicle_count = max(1, int(density_ratio * 120))
-
-        if vehicle_count <= 10:
-            label = "Low Traffic"
-            confidence = 82
-        elif vehicle_count <= 20:
-            label = "Medium Traffic"
-            confidence = 88
-        else:
-            label = "High Traffic"
-            confidence = 93
-
-        return label, confidence, vehicle_count, round(density_ratio, 3)
-
-    except Exception as e:
-        print("Inference Error:", e)
-        return "Low Traffic", 50, 3, 0.02
+    return (
+        random.choice(traffic_levels),  # traffic_level
+        round(random.uniform(0.7, 0.99), 2),  # confidence
+        random.randint(10, 100),  # vehicle_count
+        round(random.uniform(0.1, 0.9), 2)  # density
+    )

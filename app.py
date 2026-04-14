@@ -9,12 +9,6 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 def allocate_signal_times(vehicle_counts, emergency_road=None):
-    """
-    Dynamically allocate signal times based on vehicle counts.
-    Minimum: 20 sec
-    Maximum: 60 sec
-    Emergency road gets highest priority.
-    """
     min_time = 20
     max_time = 60
 
@@ -30,7 +24,6 @@ def allocate_signal_times(vehicle_counts, emergency_road=None):
             signal_time = max(min_time, min(signal_time, max_time))
             signal_times[road] = signal_time
 
-    # Emergency override
     if emergency_road and emergency_road in signal_times:
         signal_times[emergency_road] = max_time
 
@@ -52,9 +45,7 @@ def predict():
     roads = ["road1", "road2", "road3", "road4"]
 
     predictions = {}
-    confidences = {}
     vehicle_counts = {}
-    density_scores = {}
     image_urls = {}
 
     emergency_road = request.form.get("emergencyRoad", "").strip()
@@ -71,33 +62,28 @@ def predict():
             road_name = road.replace("road", "Road")
 
             predictions[road_name] = traffic_level
-            confidences[road_name] = confidence
             vehicle_counts[road_name] = vehicle_count
-            density_scores[road_name] = density_ratio
             image_urls[road_name] = f"/uploads/{file.filename}"
 
-    signal_times = allocate_signal_times(vehicle_counts, emergency_road=emergency_road)
+    signal_times = allocate_signal_times(vehicle_counts, emergency_road)
 
-    # Priority road logic
     if emergency_road and emergency_road in vehicle_counts:
         priority_road = emergency_road
-    else:
+    elif vehicle_counts:
         priority_road = max(vehicle_counts, key=vehicle_counts.get)
+    else:
+        priority_road = None
 
     return jsonify({
         "predictions": predictions,
-        "confidences": confidences,
         "vehicle_counts": vehicle_counts,
-        "density_scores": density_scores,
         "signal_times": signal_times,
         "priority_road": priority_road,
-        "image_urls": image_urls,
-        "emergency_road": emergency_road
+        "image_urls": image_urls
     })
 
 
-import os
-
-port = int(os.environ.get("PORT", 10000))
-
-app.run(host="0.0.0.0", port=port)
+# IMPORTANT FOR RENDER
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
